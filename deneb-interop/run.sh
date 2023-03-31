@@ -116,4 +116,7 @@ setsid $(bazel run //cmd/beacon-chain -- \
 	1> $LOGDIR/beacon-2.stdout 2> $LOGDIR/beacon-2.stderr) &
 echo "beacon-node 2 pid = $!"
 
+echo "sleeping until infinity or ctrl+c, whichever comes first"
+sleep infinity
+
 # ~/blob-utils master* ❯ ./blob-utils tx --blob-file ~/Desktop/test.png  --private-key 2e0834786285daccd064ca17f1654f67b4aef298acbb82cef9ec422fb4975622 --to 0x0 --gas-price 100000000000 --gas-limit 1000000 --chain-id $CHAINID --rpc-url http://localhost:8545
