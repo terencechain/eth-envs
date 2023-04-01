@@ -24,6 +24,14 @@ CL_LOGS_1=$LOGDIR/beacon-node_1.log
 VAL_LOGS_1=$LOGDIR/validator_1.log
 CL_LOGS_2=$LOGDIR/beacon-node_2.log
 GETH_LOG=$LOGDIR/geth.log
+PID_FILE=$LOGDIR/run-pids
+touch $PID_FILE
+
+# clean up all the processes on sigint
+trap cleanup INT
+function cleanup() {
+	$(cat $PID_FILE | xargs kill $1)
+}
 
 echo "all logs and stdout/err for each program redirected to log dir = $LOGDIR"
 
@@ -61,7 +69,9 @@ setsid $(bazel run //cmd/beacon-chain -- \
         --jwt-secret=$JWT_PATH \
 	--suggested-fee-recipient=0x0000000000000000000000000000000000000000 --verbosity=debug \
 	1> $LOGDIR/beacon-1.stdout 2> $LOGDIR/beacon-1.stderr) &
-echo "beacon-node 1 pid = $!"
+PID_BN1=$!
+echo "beacon-node 1 pid = $PID_BN1"
+echo $PID_BN1 >> $PID_FILE
 
 echo "validator 1 logs at $VAL_LOGS_1"
 setsid $(bazel run //cmd/validator -- \
@@ -72,7 +82,9 @@ setsid $(bazel run //cmd/validator -- \
         --interop-start-index=0 \
 	--chain-config-file=$DATADIR/config.yml \
 	1> $LOGDIR/validator-1.stdout 2> $LOGDIR/validator-2.stderr) &
-echo "validator 1 pid = $!"
+PID_V1=$!
+echo $PID_V1 >> $PID_FILE
+echo "validator 1 pid = $PID_V1"
 
 echo "geth logs at $GETH_LOG"
 $GETH --datadir $GETHDATA init $DATADIR/genesis.json 1> $LOGDIR/geth-init.stdout 2> $LOGDIR/geth-init.stderr
@@ -89,7 +101,9 @@ setsid $($GETH \
 	--authrpc.jwtsecret=$JWT_PATH \
 	--miner.etherbase=0x123463a4b065722e99115d6c222f267d9cabb524 console \
 	1> $LOGDIR/geth-1.stdout 2> $LOGDIR/geth-2.stderr) &
-echo "geth pid = $!"
+PID_GETH=$!
+echo $PID_GETH >> $PID_FILE
+echo "geth pid = $PID_GETH"
 
 WAITTIME=$(($CANCUN - $(date +%s)))
 echo "sleeping $WAITTIME seconds to wait for cancun fork"
@@ -114,7 +128,10 @@ setsid $(bazel run //cmd/beacon-chain -- \
 	--force-clear-db \
 	--verbosity=debug \
 	1> $LOGDIR/beacon-2.stdout 2> $LOGDIR/beacon-2.stderr) &
-echo "beacon-node 2 pid = $!"
+PID_BN2=$!
+echo $PID_BN2 >> $PID_FILE
+echo "beacon-node 2 pid = $PID_BN2"
+
 
 echo "sleeping until infinity or ctrl+c, whichever comes first"
 sleep infinity
