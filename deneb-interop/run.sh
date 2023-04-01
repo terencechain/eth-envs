@@ -3,7 +3,7 @@
 set -e
 
 CHAINID=32382
-GENESIS=$(($(date +%s) + 30))
+GENESIS=$(($(date +%s) + 5))
 echo "genesis time: $GENESIS"
 
 GETH=$HOME/src/mdehoog/go-ethereum/build/bin/geth
