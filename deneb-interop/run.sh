@@ -109,6 +109,10 @@ WAITTIME=$(($CANCUN - $(date +%s)))
 echo "sleeping $WAITTIME seconds to wait for cancun fork"
 sleep $WAITTIME
 
+ADDR_BN1=$(grep 'Node started p2p server' $CL_LOGS_1 | sed -E 's/.*multiAddr=\"(.*)\" prefix=.*/\1/')
+echo "beacon-node 2 will peer with beacon-node 1 multiaddr = $ADDR_BN1"
+
+echo "beacon-node 2 logs at $CL_LOGS_2"
 setsid $(bazel run //cmd/beacon-chain -- \
 	--log-file=$CL_LOGS_2 \
 	--datadir=$CL_DATADIR_2 \
@@ -127,6 +131,7 @@ setsid $(bazel run //cmd/beacon-chain -- \
 	--monitoring-port=8082 \
 	--force-clear-db \
 	--verbosity=debug \
+	--peer=$ADDR_BN1 \
 	1> $LOGDIR/beacon-2.stdout 2> $LOGDIR/beacon-2.stderr) &
 PID_BN2=$!
 echo $PID_BN2 >> $PID_FILE
