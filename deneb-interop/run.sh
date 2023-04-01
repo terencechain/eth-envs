@@ -10,7 +10,7 @@ GETH=$HOME/src/mdehoog/go-ethereum/build/bin/geth
 PRYSMSRC=$HOME/src/prysmaticlabs/prysm
 SCRIPTDIR=$PWD # assumes this is run from the dir where the script lives
 
-DATADIR=/var/lib/db/deneb-interop-${GENESIS}
+DATADIR=/var/lib/db/deneb-interop/${GENESIS}
 mkdir -p $DATADIR
 
 CL_DATADIR_1=$DATADIR/cl-1
