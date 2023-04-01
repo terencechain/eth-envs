@@ -15,15 +15,18 @@ mkdir -p $DATADIR
 
 CL_DATADIR_1=$DATADIR/cl-1
 CL_DATADIR_2=$DATADIR/cl-2
-GETHDATA=$DATADIR/el-1
-mkdir -p $GETHDATA/keystore
+GETHDATA_1=$DATADIR/el-1
+mkdir -p $GETHDATA_1/keystore
+GETHDATA_2=$DATADIR/el-2
+mkdir -p $GETHDATA_2/keystore
 
 LOGDIR=$DATADIR/logs
 mkdir -p $LOGDIR
 CL_LOGS_1=$LOGDIR/beacon-node_1.log
 VAL_LOGS_1=$LOGDIR/validator_1.log
 CL_LOGS_2=$LOGDIR/beacon-node_2.log
-GETH_LOG=$LOGDIR/geth.log
+GETH_1_LOG=$LOGDIR/geth_1.log
+GETH_2_LOG=$LOGDIR/geth_2.log
 PID_FILE=$LOGDIR/run-pids
 touch $PID_FILE
 
@@ -41,7 +44,8 @@ cp $SCRIPTDIR/genesis.json $DATADIR/genesis.json
 cp $SCRIPTDIR/config.yml $DATADIR/config.yml
 cp $SCRIPTDIR/config.yml $DATADIR/config.yml
 
-cp $SCRIPTDIR/keystore/* $GETHDATA/keystore
+cp $SCRIPTDIR/keystore/* $GETHDATA_1/keystore
+cp $SCRIPTDIR/keystore/* $GETHDATA_2/keystore
 GETH_PASSWORD_FILE=$DATADIR/geth_password.txt
 cp $SCRIPTDIR/geth_password.txt $GETH_PASSWORD_FILE
 
@@ -67,6 +71,7 @@ setsid $(bazel run //cmd/beacon-chain -- \
         --chain-id=$CHAINID \
         --accept-terms-of-use \
         --jwt-secret=$JWT_PATH \
+	--execution-endpoint=http://localhost:8551 \
 	--suggested-fee-recipient=0x0000000000000000000000000000000000000000 --verbosity=debug \
 	1> $LOGDIR/beacon-1.stdout 2> $LOGDIR/beacon-1.stderr) &
 PID_BN1=$!
@@ -86,26 +91,28 @@ PID_V1=$!
 echo $PID_V1 >> $PID_FILE
 echo "validator 1 pid = $PID_V1"
 
-echo "geth logs at $GETH_LOG"
-$GETH --datadir $GETHDATA init $DATADIR/genesis.json 1> $LOGDIR/geth-init.stdout 2> $LOGDIR/geth-init.stderr
+echo "geth logs at $GETH_1_LOG"
+$GETH --datadir $GETHDATA_1 init $DATADIR/genesis.json 1> $LOGDIR/geth-init_1.stdout 2> $LOGDIR/geth-init_1.stderr
 setsid $($GETH \
-	--log.file=$GETHDATA/geth.log \
+	--log.file=$GETH_1_LOG \
 	--http \
-        --datadir=$GETHDATA \
+        --datadir=$GETHDATA_1 \
         --nodiscover \
         --syncmode=full \
         --allow-insecure-unlock \
         --unlock=0x123463a4b065722e99115d6c222f267d9cabb524 \
         --password=$GETH_PASSWORD_FILE \
         --mine \
+	--authrpc.port=8551 \
 	--authrpc.jwtsecret=$JWT_PATH \
 	--miner.etherbase=0x123463a4b065722e99115d6c222f267d9cabb524 console \
-	1> $LOGDIR/geth-1.stdout 2> $LOGDIR/geth-2.stderr) &
-PID_GETH=$!
-echo $PID_GETH >> $PID_FILE
-echo "geth pid = $PID_GETH"
+	1> $LOGDIR/geth-1.stdout 2> $LOGDIR/geth-1.stderr) &
+PID_GETH_1=$!
+echo $PID_GETH_1 >> $PID_FILE
+echo "geth pid = $PID_GETH_1"
 
-WAITTIME=$(($CANCUN - $(date +%s)))
+#WAITTIME=$(($CANCUN - $(date +%s)))
+WAITTIME=1
 echo "sleeping $WAITTIME seconds to wait for cancun fork"
 sleep $WAITTIME
 
@@ -124,11 +131,12 @@ setsid $(bazel run //cmd/beacon-chain -- \
         --chain-id=$CHAINID \
         --accept-terms-of-use \
         --jwt-secret=$JWT_PATH \
-  	--rpc-port=4001 \
-  	--p2p-tcp-port=13001 \
-	--p2p-udp-port=12001 \
-	--grpc-gateway-port=3501 \
-	--monitoring-port=8082 \
+        --execution-endpoint=http://localhost:8552 \
+        --rpc-port=4002 \
+        --p2p-tcp-port=13002 \
+        --p2p-udp-port=12002 \
+        --grpc-gateway-port=3502 \
+        --monitoring-port=8083 \
 	--force-clear-db \
 	--verbosity=debug \
 	--peer=$ADDR_BN1 \
@@ -137,6 +145,25 @@ PID_BN2=$!
 echo $PID_BN2 >> $PID_FILE
 echo "beacon-node 2 pid = $PID_BN2"
 
+echo "geth2 logs at $GETH_2_LOG"
+$GETH --datadir $GETHDATA_2 init $DATADIR/genesis.json 1> $LOGDIR/geth-init_2.stdout 2> $LOGDIR/geth-init_2.stderr
+setsid $($GETH \
+	--log.file=$GETH_2_LOG \
+	--http \
+        --datadir=$GETHDATA_2 \
+        --nodiscover \
+        --syncmode=full \
+        --allow-insecure-unlock \
+        --unlock=0x123463a4b065722e99115d6c222f267d9cabb524 \
+        --password=$GETH_PASSWORD_FILE \
+	--authrpc.jwtsecret=$JWT_PATH \
+	--authrpc.port=8552 \
+	--http.port=8546 \
+	--port=30304 \
+	1> $LOGDIR/geth-2.stdout 2> $LOGDIR/geth-2.stderr) &
+PID_GETH_2=$!
+echo $PID_GETH_2 >> $PID_FILE
+echo "geth 2 pid = $PID_GETH_2"
 
 echo "sleeping until infinity or ctrl+c, whichever comes first"
 sleep infinity
