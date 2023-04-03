@@ -29,11 +29,21 @@ GETH_1_LOG=$LOGDIR/geth_1.log
 GETH_2_LOG=$LOGDIR/geth_2.log
 PID_FILE=$LOGDIR/run-pids
 touch $PID_FILE
+echo "pids written to $PID_FILE"
 
 # clean up all the processes on sigint
 trap cleanup INT
 function cleanup() {
 	$(cat $PID_FILE | cut -d' ' -f1 | xargs kill $1)
+}
+
+function log_pid() {
+	SHELL_PID=$1
+	PROC_NAME=$2
+	OUTER_PID=$(ps --ppid=$SHELL_PID | tail -n1 | cut -d' ' -f2)
+	GO_PID=$(ps --ppid=$OUTER_PID | tail -n1 | cut -d' ' -f2)
+	echo "$GO_PID # $PROC_NAME" >> $PID_FILE
+	echo "$PROC_NAME pid = $GO_PID"
 }
 
 echo "all logs and stdout/err for each program redirected to log dir = $LOGDIR"
@@ -59,10 +69,12 @@ echo "cancun fork time: $CANCUN"
 pushd $PRYSMSRC
 bazel run //cmd/prysmctl -- testnet generate-genesis --num-validators=256 --output-ssz=$DATADIR/genesis.ssz --chain-config-file=$DATADIR/config.yml --genesis-time=$GENESIS 1> $LOGDIR/prysmctl-genesis.stdout 2> $LOGDIR/prymctl-genesis.stderr
 
+bazel build //cmd/beacon-chain -c dbg
+
+BC_CMD=$PRYSMSRC/bazel-bin/cmd/beacon-chain/beacon-chain_/beacon-chain
+
 echo "beacon-node 1 logs at $CL_LOGS_1"
-setsid $(bazel run //cmd/beacon-chain \
-	--spawn_strategy=standalone -c dbg \
-	-- \
+setsid $($BC_CMD \
 	--datadir=$CL_DATADIR_1 \
 	--log-file=$CL_LOGS_1 \
         --min-sync-peers=0 \
@@ -77,8 +89,7 @@ setsid $(bazel run //cmd/beacon-chain \
 	--suggested-fee-recipient=0x0000000000000000000000000000000000000000 --verbosity=debug \
 	1> $LOGDIR/beacon-1.stdout 2> $LOGDIR/beacon-1.stderr) &
 PID_BN1=$!
-echo "beacon-node 1 pid = $PID_BN1"
-echo "$PID_BN1 # beacon-node 1" >> $PID_FILE
+log_pid $PID_BN1 "beacon node 1"
 
 echo "validator 1 logs at $VAL_LOGS_1"
 setsid $(bazel run //cmd/validator -- \
@@ -90,8 +101,7 @@ setsid $(bazel run //cmd/validator -- \
 	--chain-config-file=$DATADIR/config.yml \
 	1> $LOGDIR/validator-1.stdout 2> $LOGDIR/validator-2.stderr) &
 PID_V1=$!
-echo "$PID_V1 # validator 1" >> $PID_FILE
-echo "validator 1 pid = $PID_V1"
+log_pid $PID_V1 "validator 1"
 
 echo "geth logs at $GETH_1_LOG"
 $GETH --datadir $GETHDATA_1 init $DATADIR/genesis.json 1> $LOGDIR/geth-init_1.stdout 2> $LOGDIR/geth-init_1.stderr
@@ -110,8 +120,7 @@ setsid $($GETH \
 	--miner.etherbase=0x123463a4b065722e99115d6c222f267d9cabb524 console \
 	1> $LOGDIR/geth-1.stdout 2> $LOGDIR/geth-1.stderr) &
 PID_GETH_1=$!
-echo "$PID_GETH_1 # get 1" >> $PID_FILE
-echo "geth pid = $PID_GETH_1"
+log_pid $PID_GETH_1 "geth 1"
 
 WAITTIME=$(($CANCUN - $(date +%s)))
 echo "sleeping $WAITTIME seconds to wait for cancun fork"
@@ -121,9 +130,7 @@ ADDR_BN1=$(grep 'Node started p2p server' $CL_LOGS_1 | sed -E 's/.*multiAddr=\"(
 echo "beacon-node 2 will peer with beacon-node 1 multiaddr = $ADDR_BN1"
 
 echo "beacon-node 2 logs at $CL_LOGS_2"
-setsid $(bazel run //cmd/beacon-chain \
-	--spawn_strategy=standalone -c dbg \
-	-- \
+setsid $($BC_CMD \
 	--log-file=$CL_LOGS_2 \
 	--datadir=$CL_DATADIR_2 \
         --min-sync-peers=1 \
@@ -145,8 +152,7 @@ setsid $(bazel run //cmd/beacon-chain \
 	--peer=$ADDR_BN1 \
 	1> $LOGDIR/beacon-2.stdout 2> $LOGDIR/beacon-2.stderr) &
 PID_BN2=$!
-echo "$PID_BN2 # beacon node 2" >> $PID_FILE
-echo "beacon-node 2 pid = $PID_BN2"
+log_pid $PID_BN2 "beacon node 2"
 
 echo "geth2 logs at $GETH_2_LOG"
 $GETH --datadir $GETHDATA_2 init $DATADIR/genesis.json 1> $LOGDIR/geth-init_2.stdout 2> $LOGDIR/geth-init_2.stderr
@@ -165,8 +171,7 @@ setsid $($GETH \
 	--port=30304 \
 	1> $LOGDIR/geth-2.stdout 2> $LOGDIR/geth-2.stderr) &
 PID_GETH_2=$!
-echo "$PID_GETH_2 # geth 2" >> $PID_FILE
-echo "geth 2 pid = $PID_GETH_2"
+log_pid $PID_GETH_2 "geth 2"
 
 echo "sleeping until infinity or ctrl+c, whichever comes first"
 sleep infinity
