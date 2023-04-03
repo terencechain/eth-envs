@@ -73,6 +73,7 @@ setsid $(bazel run //cmd/beacon-chain -- \
         --jwt-secret=$JWT_PATH \
 	--execution-endpoint=http://localhost:8551 \
 	--suggested-fee-recipient=0x0000000000000000000000000000000000000000 --verbosity=debug \
+	--spawn_strategy=standalone -c dbg \
 	1> $LOGDIR/beacon-1.stdout 2> $LOGDIR/beacon-1.stderr) &
 PID_BN1=$!
 echo "beacon-node 1 pid = $PID_BN1"
@@ -140,6 +141,7 @@ setsid $(bazel run //cmd/beacon-chain -- \
 	--force-clear-db \
 	--verbosity=debug \
 	--peer=$ADDR_BN1 \
+	--spawn_strategy=standalone -c dbg \
 	1> $LOGDIR/beacon-2.stdout 2> $LOGDIR/beacon-2.stderr) &
 PID_BN2=$!
 echo $PID_BN2 >> $PID_FILE
