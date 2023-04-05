@@ -7,11 +7,29 @@ GENESIS=$(($(date +%s) + 5))
 echo "genesis time: $GENESIS"
 
 GETH=$HOME/src/mdehoog/go-ethereum/build/bin/geth
-PRYSMSRC=$HOME/src/prysmaticlabs/prysm
+SRCHOME=$HOME/src
+PRYSMSRC=$SRCHOME/prysmaticlabs/prysm
+BLOBUTILSRC=$SRCHOME/inphi/blob-utils
+BLOBUTILSCMD=$BLOBUTILSRC/blob-utils
 SCRIPTDIR=$PWD # assumes this is run from the dir where the script lives
+
+pushd $BLOBUTILSRC
+go build -o $BLOBUTILSCMD
+chmod +x $BLOBUTILSCMD
+popd
 
 DATADIR=/var/lib/db/deneb-interop/${GENESIS}
 mkdir -p $DATADIR
+
+BLOB1=$DATADIR/blob-1
+BLOB2=$DATADIR/blob-2
+BLOB3=$DATADIR/blob-3
+echo "writing blob 1 to $BLOB1"
+dd if=/dev/urandom bs=32 count=4096 of=$BLOB1
+echo "writing blob 2 to $BLOB3"
+dd if=/dev/urandom bs=32 count=4096 of=$BLOB2
+echo "writing blob 1 to $BLOB3"
+dd if=/dev/urandom bs=32 count=4096 of=$BLOB3
 
 CL_DATADIR_1=$DATADIR/cl-1
 CL_DATADIR_2=$DATADIR/cl-2
@@ -19,6 +37,7 @@ GETHDATA_1=$DATADIR/el-1
 mkdir -p $GETHDATA_1/keystore
 GETHDATA_2=$DATADIR/el-2
 mkdir -p $GETHDATA_2/keystore
+
 
 LOGDIR=$DATADIR/logs
 mkdir -p $LOGDIR
@@ -33,6 +52,7 @@ echo "pids written to $PID_FILE"
 
 # clean up all the processes on sigint
 trap cleanup INT
+trap cleanup EXIT
 function cleanup() {
 	$(cat $PID_FILE | cut -d' ' -f1 | xargs kill $1)
 }
@@ -40,10 +60,11 @@ function cleanup() {
 function log_pid() {
 	SHELL_PID=$1
 	PROC_NAME=$2
-	OUTER_PID=$(ps --ppid=$SHELL_PID | tail -n1 | cut -d' ' -f2)
-	GO_PID=$(ps --ppid=$OUTER_PID | tail -n1 | cut -d' ' -f2)
-	echo "$GO_PID # $PROC_NAME" >> $PID_FILE
+	OUTER_PID=$(ps -o pid,cmd --ppid=$SHELL_PID | grep 'run.sh' | tail -n1 | awk '{ print $1 }')
+	#OUTER_PID=$(ps --ppid=$SHELL_PID | grep 'run.sh' | tail -n1 | cut -d' ' -f1)
+	GO_PID=$(ps --ppid=$OUTER_PID | tail -n1 | awk '{ print $1 }')
 	echo "$PROC_NAME pid = $GO_PID"
+	echo "$GO_PID # $PROC_NAME" >> $PID_FILE
 }
 
 echo "all logs and stdout/err for each program redirected to log dir = $LOGDIR"
@@ -67,11 +88,26 @@ sed -i  -e 's/YYY/'$CANCUN'/' $DATADIR/genesis.json
 echo "cancun fork time: $CANCUN"
 
 pushd $PRYSMSRC
-bazel run //cmd/prysmctl -- testnet generate-genesis --num-validators=256 --output-ssz=$DATADIR/genesis.ssz --chain-config-file=$DATADIR/config.yml --genesis-time=$GENESIS 1> $LOGDIR/prysmctl-genesis.stdout 2> $LOGDIR/prymctl-genesis.stderr
+
+INTEROP_BIN=$PRYSMSRC/interop-bin
+mkdir -p $INTEROP_BIN
+
+bazel build //cmd/prysmctl -c dbg
+BAZEL_CTL_CMD=$PRYSMSRC/bazel-bin/cmd/prysmctl/prysmctl_/prysmctl
+CTL_CMD=$INTEROP_BIN/prysmctl
+cp -f $BAZEL_CTL_CMD $CTL_CMD
 
 bazel build //cmd/beacon-chain -c dbg
+BAZEL_BC_CMD=$PRYSMSRC/bazel-bin/cmd/beacon-chain/beacon-chain_/beacon-chain
+BC_CMD=$INTEROP_BIN/beacon-chain
+cp -f $BAZEL_BC_CMD $BC_CMD
 
-BC_CMD=$PRYSMSRC/bazel-bin/cmd/beacon-chain/beacon-chain_/beacon-chain
+bazel build //cmd/validator -c dbg
+BAZEL_V_CMD=$PRYSMSRC/bazel-bin/cmd/validator/validator_/validator
+V_CMD=$INTEROP_BIN/validator
+cp -f $BAZEL_V_CMD $V_CMD
+
+$CTL_CMD testnet generate-genesis --num-validators=256 --output-ssz=$DATADIR/genesis.ssz --chain-config-file=$DATADIR/config.yml --genesis-time=$GENESIS 1> $LOGDIR/prysmctl-genesis.stdout 2> $LOGDIR/prymctl-genesis.stderr
 
 echo "beacon-node 1 logs at $CL_LOGS_1"
 setsid $($BC_CMD \
@@ -92,7 +128,7 @@ PID_BN1=$!
 log_pid $PID_BN1 "beacon node 1"
 
 echo "validator 1 logs at $VAL_LOGS_1"
-setsid $(bazel run //cmd/validator -- \
+setsid $($V_CMD \
 	--datadir=$CL_DATADIR_1 \
 	--log-file=$VAL_LOGS_1 \
         --accept-terms-of-use \
@@ -122,6 +158,8 @@ setsid $($GETH \
 PID_GETH_1=$!
 log_pid $PID_GETH_1 "geth 1"
 
+#WAITTIME=72
+#WAITTIME=$(($SHANGHAI - $(date +%s)))
 WAITTIME=$(($CANCUN - $(date +%s)))
 echo "sleeping $WAITTIME seconds to wait for cancun fork"
 sleep $WAITTIME
@@ -173,7 +211,10 @@ setsid $($GETH \
 PID_GETH_2=$!
 log_pid $PID_GETH_2 "geth 2"
 
+$BLOBUTILSCMD tx --blob-file=$BLOB1 --private-key 2e0834786285daccd064ca17f1654f67b4aef298acbb82cef9ec422fb4975622 --to 0x0 --gas-price 100000000000 --gas-limit 1000000 --chain-id 32382 --rpc-url http://localhost:8545
+$BLOBUTILSCMD tx --blob-file=$BLOB2 --private-key 2e0834786285daccd064ca17f1654f67b4aef298acbb82cef9ec422fb4975622 --to 0x0 --gas-price 100000000000 --gas-limit 1000000 --chain-id 32382 --rpc-url http://localhost:8545
+$BLOBUTILSCMD tx --blob-file=$BLOB3 --private-key 2e0834786285daccd064ca17f1654f67b4aef298acbb82cef9ec422fb4975622 --to 0x0 --gas-price 100000000000 --gas-limit 1000000 --chain-id 32382 --rpc-url http://localhost:8545
+
 echo "sleeping until infinity or ctrl+c, whichever comes first"
 sleep infinity
 
-# ~/blob-utils master* ❯ ./blob-utils tx --blob-file ~/Desktop/test.png  --private-key 2e0834786285daccd064ca17f1654f67b4aef298acbb82cef9ec422fb4975622 --to 0x0 --gas-price 100000000000 --gas-limit 1000000 --chain-id $CHAINID --rpc-url http://localhost:8545
