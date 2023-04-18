@@ -61,7 +61,6 @@ function log_pid() {
 	SHELL_PID=$1
 	PROC_NAME=$2
 	OUTER_PID=$(ps -o pid,cmd --ppid=$SHELL_PID | grep 'run.sh' | tail -n1 | awk '{ print $1 }')
-	#OUTER_PID=$(ps --ppid=$SHELL_PID | grep 'run.sh' | tail -n1 | cut -d' ' -f1)
 	GO_PID=$(ps --ppid=$OUTER_PID | tail -n1 | awk '{ print $1 }')
 	echo "$PROC_NAME pid = $GO_PID"
 	echo "$GO_PID # $PROC_NAME" >> $PID_FILE
@@ -81,11 +80,9 @@ GETH_PASSWORD_FILE=$DATADIR/geth_password.txt
 cp $SCRIPTDIR/geth_password.txt $GETH_PASSWORD_FILE
 
 SHANGHAI=$(($GENESIS))
-#sed -i  -e 's/XXX/'$SHANGHAI'/' $DATADIR/genesis.json
-#echo "shanghai fork time: $SHANGHAI"
+echo "shanghai fork time: $SHANGHAI"
 CANCUN=$(($GENESIS))
-#sed -i  -e 's/YYY/'$CANCUN'/' $DATADIR/genesis.json
-#echo "cancun fork time: $CANCUN"
+echo "cancun fork time: $CANCUN"
 
 pushd $PRYSMSRC
 
@@ -162,8 +159,10 @@ setsid $($GETH \
 PID_GETH_1=$!
 log_pid $PID_GETH_1 "geth 1"
 
-#WAITTIME=$(($SHANGHAI - $(date +%s)))
-WAITTIME=$((5 + $CANCUN - $(date +%s)))
+# 5 is added as a minimum wait amount, because when shanghai and cancun are both zero,
+# geth + prysm need a few seconds to start up and call FCU before geth will fork and
+# accept blob txs.
+WAITTIME=$((5 + $SHANGHAI + $CANCUN - $(date +%s)))
 echo "sleeping $WAITTIME seconds to wait for geth to fork"
 sleep $WAITTIME
 
