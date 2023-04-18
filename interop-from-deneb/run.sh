@@ -80,10 +80,10 @@ cp $SCRIPTDIR/keystore/* $GETHDATA_2/keystore
 GETH_PASSWORD_FILE=$DATADIR/geth_password.txt
 cp $SCRIPTDIR/geth_password.txt $GETH_PASSWORD_FILE
 
-SHANGHAI=$(($GENESIS + 18 ))
+SHANGHAI=$(($GENESIS))
 #sed -i  -e 's/XXX/'$SHANGHAI'/' $DATADIR/genesis.json
 #echo "shanghai fork time: $SHANGHAI"
-CANCUN=$(($GENESIS + 36 ))
+CANCUN=$(($GENESIS))
 #sed -i  -e 's/YYY/'$CANCUN'/' $DATADIR/genesis.json
 #echo "cancun fork time: $CANCUN"
 
@@ -107,7 +107,7 @@ BAZEL_V_CMD=$PRYSMSRC/bazel-bin/cmd/validator/validator_/validator
 V_CMD=$INTEROP_BIN/validator
 cp -f $BAZEL_V_CMD $V_CMD
 
-$CTL_CMD testnet generate-genesis --num-validators=256 --output-ssz=$DATADIR/genesis.ssz --chain-config-file=$DATADIR/config.yml --genesis-time=$GENESIS --fork=capella --geth-genesis-json-in=$DATADIR/genesis.json --geth-genesis-json-in=$DATADIR/genesis.json --geth-genesis-json-out=$DATADIR/genesis.json 1> $LOGDIR/prysmctl-genesis.stdout 2> $LOGDIR/prymctl-genesis.stderr
+$CTL_CMD testnet generate-genesis --num-validators=256 --output-ssz=$DATADIR/genesis.ssz --chain-config-file=$DATADIR/config.yml --genesis-time=$GENESIS --fork=deneb --geth-genesis-json-in=$DATADIR/genesis.json --geth-genesis-json-in=$DATADIR/genesis.json --geth-genesis-json-out=$DATADIR/genesis.json 1> $LOGDIR/prysmctl-genesis.stdout 2> $LOGDIR/prymctl-genesis.stderr
 
 echo "beacon-node 1 logs at $CL_LOGS_1"
 setsid $($BC_CMD \
@@ -158,10 +158,9 @@ setsid $($GETH \
 PID_GETH_1=$!
 log_pid $PID_GETH_1 "geth 1"
 
-#WAITTIME=18
 #WAITTIME=$(($SHANGHAI - $(date +%s)))
-WAITTIME=$(($CANCUN - $(date +%s)))
-echo "sleeping $WAITTIME seconds to wait for cancun fork"
+WAITTIME=$((5 + $CANCUN - $(date +%s)))
+echo "sleeping $WAITTIME seconds to wait for geth to fork"
 sleep $WAITTIME
 
 ADDR_BN1=$(grep 'Node started p2p server' $CL_LOGS_1 | sed -E 's/.*multiAddr=\"(.*)\" prefix=.*/\1/')
