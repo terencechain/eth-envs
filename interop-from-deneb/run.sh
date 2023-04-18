@@ -107,7 +107,7 @@ BAZEL_V_CMD=$PRYSMSRC/bazel-bin/cmd/validator/validator_/validator
 V_CMD=$INTEROP_BIN/validator
 cp -f $BAZEL_V_CMD $V_CMD
 
-$CTL_CMD testnet generate-genesis --num-validators=256 --output-ssz=$DATADIR/genesis.ssz --chain-config-file=$DATADIR/config.yml --genesis-time=$GENESIS --fork=bellatrix --geth-genesis-json-in=$DATADIR/genesis.json --geth-genesis-json-in=$DATADIR/genesis.json --geth-genesis-json-out=$DATADIR/genesis.json 1> $LOGDIR/prysmctl-genesis.stdout 2> $LOGDIR/prymctl-genesis.stderr
+$CTL_CMD testnet generate-genesis --num-validators=256 --output-ssz=$DATADIR/genesis.ssz --chain-config-file=$DATADIR/config.yml --genesis-time=$GENESIS --fork=capella --geth-genesis-json-in=$DATADIR/genesis.json --geth-genesis-json-in=$DATADIR/genesis.json --geth-genesis-json-out=$DATADIR/genesis.json 1> $LOGDIR/prysmctl-genesis.stdout 2> $LOGDIR/prymctl-genesis.stderr
 
 echo "beacon-node 1 logs at $CL_LOGS_1"
 setsid $($BC_CMD \
