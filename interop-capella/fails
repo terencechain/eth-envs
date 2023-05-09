@@ -1,0 +1,26 @@
+# these seem like a race in some test p2p code?
+TestDebugServer_GetPeer
+TestNodeServer_ListPeers
+
+# consistenly fails locally??
+Test_setupBlockStorageType
+Test_setupBlockStorageType/fresh_database_with_feature_enabled_to_store_full_blocks_should_store_full_blocks
+Test_setupBlockStorageType/fresh_database_with_default_settings_should_store_blinded
+Test_setupBlockStorageType/existing_database_with_blinded_blocks_but_no_key_in_metadata_bucket_should_continue_storing_blinded_blocks
+Test_setupBlockStorageType/existing_database_with_full_blocks_type_should_continue_storing_full_blocks
+Test_setupBlockStorageType/existing_database_with_blinded_blocks_type_should_error_if_user_enables_full_blocks_feature_flag
+
+# flaky because example.org resolves to localhost on my system
+# which is interesting, because when I use dig or nslookup, they resolve to the
+# expected IP (93.184.216.34). what resolver is bazel using here?
+TestHostIsResolved
+TestHostIsResolved
+TestHostIsResolved
+
+# flaky due to random byte generation sometimes producing zero-byte sequences
+TestCopySignedBeaconBlockAltair
+
+# flaky, have not debugged
+TestWeb3RemoteSigner_StartsAndReturnsPublicKeys
+TestMainnet_Capella_Forkchoice
+TestMainnet_Capella_Forkchoice/proposer_boost
