@@ -162,7 +162,7 @@ log_pid $PID_GETH_1 "geth 1"
 # 5 is added as a minimum wait amount, because when shanghai and cancun are both zero,
 # geth + prysm need a few seconds to start up and call FCU before geth will fork and
 # accept blob txs.
-WAITTIME=$((5 + $SHANGHAI + $CANCUN - $(date +%s)))
+WAITTIME=$((5 + $CANCUN - $(date +%s)))
 echo "sleeping $WAITTIME seconds to wait for geth to fork"
 sleep $WAITTIME
 
