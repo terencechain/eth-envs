@@ -1,6 +1,4 @@
 #! /usr/bin/env bash
-#
-# REMEMBER: slot 6085920 is origin
 
 pushd $HOME/src/prysmaticlabs/prysm
 
@@ -19,9 +17,5 @@ bazel run //cmd/beacon-chain -c dbg -- \
 --peer="enr:-L64QC9CHGQtVuKOdDqfKZ2keUbRRqWCoKWOZThjzI44P5dXYFsggIebFehAgotsTwShiXqOA34XvUbjxShXn6_ibHCCCJ6HYXR0bmV0c4j__________4RldGgykD0ImhFQSEQF__________-CaWSCdjSCaXCEhtHFfolzZWNwMjU2azGhA7_iA8nSvyuJwS-WLrk3ehcs4gBBuCoo3E-g_KWHT90iiHN5bmNuZXRzD4N0Y3CCIyiDdWRwgiMo" \
 --peer="enr:-Ly4QMCITyvzu9A6e6lNQ5nA0wIlSVyNJYss5S6KqAQwaK83LQH2nXYpU03XMAZm1bpVbZMW6g_AgTunpyPZHbEhE-4Bh2F0dG5ldHOIAAAAAAAAAACEZXRoMpA9CJoRUEhEBf__________gmlkgnY0gmlwhKEjk9yJc2VjcDI1NmsxoQJfjHrA3bDejt2GUsQxuyml1XJ-dlmsxnH55OGs1k_DYIhzeW5jbmV0cwCDdGNwgiMog3VkcIIjKA" \
 --log-file=/var/lib/db/devnet5/prysm/beacon.log
-#--datadir=/var/lib/db/prysm/mainnet-cp/ \
-#//--checkpoint-sync-url=https://sync-mainnet.beaconcha.in \
-#//--genesis-beacon-api-url=https://sync-mainnet.beaconcha.in \
 
-# bazel run //cmd/beacon-chain -- --http-web3provider=http://localhost:8545 --prater --datadir /var/lib/prysm/prater-new-gen --accept-terms-of-use --enable-debug-rpc-endpoints --grpc-max-msg-size=65568081 --genesis-state /var/lib/prysm/prater/genesis.ssz
 popd
