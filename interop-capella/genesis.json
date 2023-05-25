@@ -2,7 +2,6 @@
     "config": {
         "ChainName": "l1_chain",
         "chainId": 32382,
-        "consensus": "clique",
         "homesteadBlock": 0,
         "daoForkSupport": true,
         "eip150Block": 0,
@@ -23,10 +22,6 @@
         "grayGlacierBlock": 0,
         "shanghaiTime": 0,
         "shardingForkTime": 0,
-        "clique": {
-            "period": 5,
-            "epoch": 30000
-        },
         "terminalTotalDifficulty": 0
     },
     "difficulty": "1",
