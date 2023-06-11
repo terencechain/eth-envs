@@ -6,7 +6,7 @@ CHAINID=32382
 GENESIS=$(($(date +%s) + 5))
 echo "genesis time: $GENESIS"
 
-GETH=$HOME/src/mdehoog/go-ethereum/build/bin/geth
+GETH=$HOME/src/MariusVanDerWijden/go-ethereum/build/bin/geth
 SRCHOME=$HOME/src
 PRYSMSRC=$SRCHOME/prysmaticlabs/prysm
 BLOBUTILSRC=$SRCHOME/inphi/blob-utils
@@ -154,10 +154,9 @@ setsid $($GETH \
         --allow-insecure-unlock \
         --unlock=0x123463a4b065722e99115d6c222f267d9cabb524 \
         --password=$GETH_PASSWORD_FILE \
-        --mine \
 	--authrpc.port=8551 \
 	--authrpc.jwtsecret=$JWT_PATH \
-	--miner.etherbase=0x123463a4b065722e99115d6c222f267d9cabb524 console \
+	console \
 	1> $LOGDIR/geth-1.stdout 2> $LOGDIR/geth-1.stderr) &
 PID_GETH_1=$!
 log_pid $PID_GETH_1 "geth 1"
