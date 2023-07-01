@@ -1,10 +1,10 @@
 #! /usr/bin/env bash
 #
 GETH=$HOME/src/MariusVanDerWijden/go-ethereum/build/bin/geth
-ETHENVS=/home/kasey/src/kasey/eth-envs/devnet6
-ENVRUN=/var/lib/db/devnet6
+ETHENVS=/home/kasey/src/kasey/eth-envs/devnet7
+ENVRUN=/var/lib/db/devnet7
 
-$GETH init --datadir /var/lib/db/devnet6/geth genesis.json
+$GETH init --datadir $ENVRUN/geth genesis.json
 
 $GETH \
 	--http \
