@@ -1,22 +1,46 @@
 #!/bin/bash
-#set -x
+set -x
 set -e
 
 CHAINID=32382
-GENESIS=$(($(date +%s) + 5))
-echo "genesis time: $GENESIS"
-
-GETH=$HOME/src/MariusVanDerWijden/go-ethereum/build/bin/geth
 SRCHOME=$HOME/src
 PRYSMSRC=$SRCHOME/prysmaticlabs/prysm
+
+# do the slow build stuff before computing genesis time
+pushd $PRYSMSRC
+
+INTEROP_BIN=$PRYSMSRC/interop-bin
+mkdir -p $INTEROP_BIN
+
+bazel build //cmd/prysmctl -c dbg
+BAZEL_CTL_CMD=$PRYSMSRC/bazel-bin/cmd/prysmctl/prysmctl_/prysmctl
+CTL_CMD=$INTEROP_BIN/prysmctl
+cp -f $BAZEL_CTL_CMD $CTL_CMD
+
+bazel build //cmd/beacon-chain -c dbg
+BAZEL_BC_CMD=$PRYSMSRC/bazel-bin/cmd/beacon-chain/beacon-chain_/beacon-chain
+BC_CMD=$INTEROP_BIN/beacon-chain
+cp -f $BAZEL_BC_CMD $BC_CMD
+
+bazel build //cmd/validator -c dbg
+BAZEL_V_CMD=$PRYSMSRC/bazel-bin/cmd/validator/validator_/validator
+V_CMD=$INTEROP_BIN/validator
+cp -f $BAZEL_V_CMD $V_CMD
+
+popd
+
 BLOBUTILSRC=$SRCHOME/inphi/blob-utils
 BLOBUTILSCMD=$BLOBUTILSRC/blob-utils
-SCRIPTDIR=$PWD # assumes this is run from the dir where the script lives
-
 pushd $BLOBUTILSRC
 go build -o $BLOBUTILSCMD
 chmod +x $BLOBUTILSCMD
 popd
+
+GENESIS=$(($(date +%s) + 5))
+echo "genesis time: $GENESIS"
+
+GETHEXE=$HOME/src/MariusVanDerWijden/go-ethereum/build/bin/geth
+SCRIPTDIR=$PWD # assumes this is run from the dir where the script lives
 
 DATADIR=/var/lib/db/deneb-interop/${GENESIS}
 mkdir -p $DATADIR
@@ -37,7 +61,6 @@ GETHDATA_1=$DATADIR/el-1
 mkdir -p $GETHDATA_1/keystore
 GETHDATA_2=$DATADIR/el-2
 mkdir -p $GETHDATA_2/keystore
-
 
 LOGDIR=$DATADIR/logs
 mkdir -p $LOGDIR
@@ -89,24 +112,6 @@ echo "cancun fork time: $CANCUN"
 
 pushd $PRYSMSRC
 
-INTEROP_BIN=$PRYSMSRC/interop-bin
-mkdir -p $INTEROP_BIN
-
-bazel build //cmd/prysmctl -c dbg
-BAZEL_CTL_CMD=$PRYSMSRC/bazel-bin/cmd/prysmctl/prysmctl_/prysmctl
-CTL_CMD=$INTEROP_BIN/prysmctl
-cp -f $BAZEL_CTL_CMD $CTL_CMD
-
-bazel build //cmd/beacon-chain -c dbg
-BAZEL_BC_CMD=$PRYSMSRC/bazel-bin/cmd/beacon-chain/beacon-chain_/beacon-chain
-BC_CMD=$INTEROP_BIN/beacon-chain
-cp -f $BAZEL_BC_CMD $BC_CMD
-
-bazel build //cmd/validator -c dbg
-BAZEL_V_CMD=$PRYSMSRC/bazel-bin/cmd/validator/validator_/validator
-V_CMD=$INTEROP_BIN/validator
-cp -f $BAZEL_V_CMD $V_CMD
-
 $CTL_CMD testnet generate-genesis \
 	--num-validators=256 --output-ssz=$DATADIR/genesis.ssz \
 	--chain-config-file=$DATADIR/config.yml --genesis-time=$GENESIS \
@@ -144,8 +149,8 @@ PID_V1=$!
 log_pid $PID_V1 "validator 1"
 
 echo "geth logs at $GETH_1_LOG"
-$GETH --datadir $GETHDATA_1 init $DATADIR/genesis.json 1> $LOGDIR/geth-init_1.stdout 2> $LOGDIR/geth-init_1.stderr
-setsid $($GETH \
+$GETHEXE --datadir $GETHDATA_1 init $DATADIR/genesis.json 1> $LOGDIR/geth-init_1.stdout 2> $LOGDIR/geth-init_1.stderr
+setsid $($GETHEXE \
 	--log.file=$GETH_1_LOG \
 	--http \
         --datadir=$GETHDATA_1 \
@@ -196,8 +201,8 @@ PID_BN2=$!
 log_pid $PID_BN2 "beacon node 2"
 
 echo "geth2 logs at $GETH_2_LOG"
-$GETH --datadir $GETHDATA_2 init $DATADIR/genesis.json 1> $LOGDIR/geth-init_2.stdout 2> $LOGDIR/geth-init_2.stderr
-setsid $($GETH \
+$GETHEXE --datadir $GETHDATA_2 init $DATADIR/genesis.json 1> $LOGDIR/geth-init_2.stdout 2> $LOGDIR/geth-init_2.stderr
+setsid $($GETHEXE \
 	--log.file=$GETH_2_LOG \
 	--http \
         --datadir=$GETHDATA_2 \
@@ -214,9 +219,9 @@ setsid $($GETH \
 PID_GETH_2=$!
 log_pid $PID_GETH_2 "geth 2"
 
-$BLOBUTILSCMD tx --blob-file=$BLOB1 --private-key 2e0834786285daccd064ca17f1654f67b4aef298acbb82cef9ec422fb4975622 --to 0x0 --gas-price 100000000000 --gas-limit 1000000 --chain-id 32382 --rpc-url http://localhost:8545
-$BLOBUTILSCMD tx --blob-file=$BLOB2 --private-key 2e0834786285daccd064ca17f1654f67b4aef298acbb82cef9ec422fb4975622 --to 0x0 --gas-price 100000000000 --gas-limit 1000000 --chain-id 32382 --rpc-url http://localhost:8545
-$BLOBUTILSCMD tx --blob-file=$BLOB3 --private-key 2e0834786285daccd064ca17f1654f67b4aef298acbb82cef9ec422fb4975622 --to 0x0 --gas-price 100000000000 --gas-limit 1000000 --chain-id 32382 --rpc-url http://localhost:8545
+#$BLOBUTILSCMD tx --blob-file=$BLOB1 --private-key 2e0834786285daccd064ca17f1654f67b4aef298acbb82cef9ec422fb4975622 --to 0x0 --gas-price 100000000000 --gas-limit 1000000 --chain-id 32382 --rpc-url http://localhost:8545
+#$BLOBUTILSCMD tx --blob-file=$BLOB2 --private-key 2e0834786285daccd064ca17f1654f67b4aef298acbb82cef9ec422fb4975622 --to 0x0 --gas-price 100000000000 --gas-limit 1000000 --chain-id 32382 --rpc-url http://localhost:8545
+#$BLOBUTILSCMD tx --blob-file=$BLOB3 --private-key 2e0834786285daccd064ca17f1654f67b4aef298acbb82cef9ec422fb4975622 --to 0x0 --gas-price 100000000000 --gas-limit 1000000 --chain-id 32382 --rpc-url http://localhost:8545
 
 echo "sleeping until infinity or ctrl+c, whichever comes first"
 sleep infinity
