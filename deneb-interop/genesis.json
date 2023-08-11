@@ -20,9 +20,10 @@
 "0x0000000000000000000000000000000000000000000000000000000000000000",
         "arrowGlacierBlock": 0,
         "grayGlacierBlock": 0,
-        "shanghaiTime": XXX,
-        "shardingForkTime": YYY,
-        "terminalTotalDifficulty": 25
+        "shanghaiTime": 1691701126,
+        "cancunTime": 1691701198,
+        "terminalTotalDifficulty": 0,
+        "terminalTotalDifficultyPassed": true
     },
     "difficulty": "1",
     "gasLimit": "30000000",
