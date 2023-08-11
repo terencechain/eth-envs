@@ -103,3 +103,10 @@ $V_CMD \
         --interop-start-index=0 \
 	--chain-config-file=$DATADIR/config.yml \
 	1> $LOGDIR/validator-1.stdout 2> $LOGDIR/validator-2.stderr &
+
+sleep 102 # until cancun fork
+for (( ; ; ))
+do
+   /Users/t/tx-fuzz/cmd/4844/4844
+   sleep 15
+done
