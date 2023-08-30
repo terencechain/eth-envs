@@ -29,7 +29,7 @@ cp -f $BAZEL_V_CMD $V_CMD
 GENESIS=$(($(date +%s) + 30))
 echo "genesis time: $GENESIS"
 
-GETHEXE=/Users/t/go/src/github.com/ethereum/go-ethereum/build/bin/geth # TODO: change this to your geth binary
+GETHEXE=/Users/t/go/src/github.com/ethereum/lightclient/build/bin/geth # TODO: change this to your geth binary
 SCRIPTDIR=/Users/t/eth-envs/electra-interop # TODO: change this to your eth-ens dir
 
 DATADIR=/Users/t/electra-interop/${GENESIS} # TODO: change this to your tmp dir for logging and data
