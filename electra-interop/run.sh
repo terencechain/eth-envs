@@ -160,4 +160,3 @@ $V_CMD \
 #	--http.port=8546 \
 #	--port=30304 \
 #	1> $LOGDIR/geth-2.stdout 2> $LOGDIR/geth-2.stderr &
-
